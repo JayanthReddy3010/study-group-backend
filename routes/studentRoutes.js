@@ -59,7 +59,7 @@ router.post("/login", async (req, res) => {
 router.post("/register", async (req, res) => {
   try {
 
-    console.log("REGISTER BODY:", req.body);
+    console.log(req.body);
 
     const {
       fullname,
@@ -76,29 +76,21 @@ router.post("/register", async (req, res) => {
     } = req.body;
 
     if (!fullname || !email || !password) {
-      return res.status(400).json(
-        "Fullname, email and password required"
-      );
+      return res.status(400).json("Missing required fields");
     }
 
-    const check = await pool.query(
+    const existingUser = await pool.query(
       "SELECT * FROM students WHERE email=$1",
       [email]
     );
 
-    if (check.rows.length > 0) {
-      return res.status(400).json(
-        "User already exists"
-      );
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json("User already exists");
     }
 
-    const hashedPassword = await bcrypt.hash(
-      password,
-      10
-    );
-
     const result = await pool.query(
-      `INSERT INTO students
+      `
+      INSERT INTO students
       (
         fullname,
         email,
@@ -114,32 +106,33 @@ router.post("/register", async (req, res) => {
       )
       VALUES
       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-      RETURNING *`,
+      RETURNING *
+      `,
       [
         fullname,
         email,
-        hashedPassword,
-        college,
-        department,
-        semester,
-        strong_subjects,
-        weak_subjects,
-        skills,
-        study_mode,
-        availability
+        password,
+        college || "",
+        department || "",
+        semester || "",
+        strong_subjects || "",
+        weak_subjects || "",
+        skills || "",
+        study_mode || "",
+        availability || ""
       ]
     );
 
     res.json({
-      student: result.rows[0],
-      token: "dummy-token"
+      token: "dummy-token",
+      student: result.rows[0]
     });
 
   } catch (err) {
 
-    console.log(err.message);
+    console.log(err);
 
-    res.status(500).json("Server Error");
+    res.status(500).json(err.message);
   }
 });
 
