@@ -26,6 +26,7 @@ app.use(
 
 // IMPORTANT FIX FOR RENDER + EXPRESS ROUTER
 app.options(/.*/, cors());
+console.log("SERVER BOOT STARTED");
 /* =========================
    ROUTES
 ========================= */
