@@ -12,7 +12,7 @@ Backend API for the Study Group Finder platform built using:
 
 ## 🌐 Live Backend
 
-👉 https://your-backend-url.onrender.com
+👉 http://study-group-backend-b1kf.onrender.com/
 
 ---
 
