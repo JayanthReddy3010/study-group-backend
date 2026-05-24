@@ -1,12 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const bcrypt = require("bcrypt");
 
 /* =========================
    LOGIN
 ========================= */
-const bcrypt = require("bcrypt");
-
 router.post("/login", async (req, res) => {
   try {
 
@@ -24,16 +23,41 @@ router.post("/login", async (req, res) => {
       [email]
     );
 
+    console.log("DB RESULT:", result.rows);
+
     if (result.rows.length === 0) {
       return res.status(401).json("Invalid Email");
     }
 
     const student = result.rows[0];
 
-    const isMatch = await bcrypt.compare(
-      password,
-      student.password
-    );
+    // SUPPORT OLD NON-HASHED PASSWORDS + NEW HASHED PASSWORDS
+    let isMatch = false;
+
+    if (student.password.startsWith("$2b$")) {
+
+      isMatch = await bcrypt.compare(
+        password,
+        student.password
+      );
+
+    } else {
+
+      isMatch = password === student.password;
+
+      // AUTO HASH OLD PASSWORD
+      if (isMatch) {
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await pool.query(
+          "UPDATE students SET password=$1 WHERE id=$2",
+          [hashedPassword, student.id]
+        );
+
+        student.password = hashedPassword;
+      }
+    }
 
     if (!isMatch) {
       return res.status(401).json("Wrong Password");
@@ -52,14 +76,13 @@ router.post("/login", async (req, res) => {
   }
 });
 
-
 /* =========================
    REGISTER
 ========================= */
 router.post("/register", async (req, res) => {
   try {
 
-    console.log(req.body);
+    console.log("REGISTER BODY:", req.body);
 
     const {
       fullname,
@@ -80,13 +103,16 @@ router.post("/register", async (req, res) => {
     }
 
     const existingUser = await pool.query(
-      "SELECT * FROM students WHERE email=$1",
+      "SELECT * FROM students WHERE LOWER(email)=LOWER($1)",
       [email]
     );
 
     if (existingUser.rows.length > 0) {
       return res.status(400).json("User already exists");
     }
+
+    // HASH PASSWORD
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
       `
@@ -111,7 +137,7 @@ router.post("/register", async (req, res) => {
       [
         fullname,
         email,
-        password,
+        hashedPassword,
         college || "",
         department || "",
         semester || "",
@@ -130,9 +156,9 @@ router.post("/register", async (req, res) => {
 
   } catch (err) {
 
-    console.log(err);
+    console.log(err.message);
 
-    res.status(500).json(err.message);
+    res.status(500).json("Server Error");
   }
 });
 
@@ -156,7 +182,9 @@ router.get("/profile/:id", async (req, res) => {
     res.json(result.rows[0]);
 
   } catch (err) {
+
     console.log(err.message);
+
     res.status(500).json("Server Error");
   }
 });
@@ -180,25 +208,27 @@ router.put("/update/:id", async (req, res) => {
     } = req.body;
 
     const result = await pool.query(
-      `UPDATE students
-       SET
-       fullname=$1,
-       email=$2,
-       department=$3,
-       skills=$4,
-       strong_subjects=$5,
-       weak_subjects=$6,
-       preferred_mode=$7
-       WHERE id=$8
-       RETURNING *`,
+      `
+      UPDATE students
+      SET
+      fullname=$1,
+      email=$2,
+      department=$3,
+      skills=$4,
+      strong_subjects=$5,
+      weak_subjects=$6,
+      preferred_mode=$7
+      WHERE id=$8
+      RETURNING *
+      `,
       [
-        fullname,
-        email,
-        department,
-        skills,
-        strong_subjects,
-        weak_subjects,
-        preferred_mode,
+        fullname || "",
+        email || "",
+        department || "",
+        skills || "",
+        strong_subjects || "",
+        weak_subjects || "",
+        preferred_mode || "",
         id
       ]
     );
@@ -210,14 +240,13 @@ router.put("/update/:id", async (req, res) => {
     res.json(result.rows[0]);
 
   } catch (err) {
+
     console.log(err.message);
+
     res.status(500).json("Server Error");
   }
 });
 
-/* =========================
-   DELETE ACCOUNT
-========================= */
 /* =========================
    DELETE ACCOUNT
 ========================= */
@@ -238,12 +267,21 @@ router.post("/delete/:id", async (req, res) => {
 
     const student = result.rows[0];
 
-    const bcrypt = require("bcrypt");
+    let isMatch = false;
 
-    const isMatch = await bcrypt.compare(
-      password,
-      student.password
-    );
+    // HASHED PASSWORD
+    if (student.password.startsWith("$2b$")) {
+
+      isMatch = await bcrypt.compare(
+        password,
+        student.password
+      );
+
+    } else {
+
+      // OLD NORMAL PASSWORD
+      isMatch = password === student.password;
+    }
 
     if (!isMatch) {
       return res.status(400).json("Wrong password");
@@ -263,4 +301,5 @@ router.post("/delete/:id", async (req, res) => {
     res.status(500).json("Server Error");
   }
 });
+
 module.exports = router;
