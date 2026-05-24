@@ -17,13 +17,14 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://study-group-frontend-f68ua6heq-gjayanthreddy69-2878s-projects.vercel.app"
+      "http://localhost:3000",
+      "https://study-group-frontend-3tvwhkvct-gjayanthreddy69-2878s-projects.vercel.app"
     ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true
   })
 );
-
+app.options("*", cors());
 /* =========================
    ROUTES
 ========================= */
