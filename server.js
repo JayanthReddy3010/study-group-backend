@@ -17,14 +17,15 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "http://localhost:3000",
       "https://study-group-frontend-3tvwhkvct-gjayanthreddy69-2878s-projects.vercel.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true
   })
 );
-app.options("*", cors());
+
+// IMPORTANT FIX FOR RENDER + EXPRESS ROUTER
+app.options(/.*/, cors());
 /* =========================
    ROUTES
 ========================= */
