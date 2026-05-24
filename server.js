@@ -7,7 +7,7 @@ const multer = require("multer");
 const path = require("path");
 
 const app = express();
-
+const isProduction = process.env.NODE_ENV === "production";
 /* =========================
    MIDDLEWARE (IMPORTANT FIX)
 ========================= */
@@ -223,6 +223,8 @@ app.post("/api/notes/upload", upload.single("file"), async (req, res) => {
 /* =========================
    START SERVER (ONLY ONCE)
 ========================= */
-server.listen(5000, () => {
-  console.log("Server Running on 5000");
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT, () => {
+  console.log("Server Running on", PORT);
 });
