@@ -17,9 +17,10 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://study-group-frontend-snowy.vercel.app/"
+      "https://study-group-frontend-f68ua6heq-gjayanthreddy69-2878s-projects.vercel.app"
     ],
-    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
   })
 );
 
